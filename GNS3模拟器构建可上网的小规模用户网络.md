@@ -70,16 +70,36 @@ R1(config)#ip route 0.0.0.0 0.0.0.0 192.168.157.2 #指向VMnet8网关
 R2 承担 **NAT + DHCP + 默认路由** 三大任务。
 
 ```c#
-R1#configure
+R2#configure
 Configuring from terminal, memory, or network [terminal]?
 Enter configuration commands, one per line.  End with CNTL/Z.
-R1(config)#interface fastEthernet 0/0
-R1(config-if)#ip address 192.168.157.135 255.255.255.0 #和VMnet8必须同一子网
-R1(config-if)#exit
-R1(config)#interface fastEthernet 0/1
-R1(config-if)#ip address 223.0.113.1 255.255.255.0
-R1(config-if)#exit
+R2(config)#interface fastEthernet 0/0
+R2(config-if)#ip nat inside
+R2(config-if)#ip address 192.168.157.135 255.255.255.0 #和VMnet8必须同一子网
+R2(config-if)#exit
+R2(config)#interface fastEthernet 0/1
+R2(config-if)#ip nat outside
+R2(config-if)#ip address 223.0.113.1 255.255.255.0
+R2(config-if)#exit
+R2(config)#ip dhcp pool LAN
+R2(dhcp-config)#network 192.168.10.0 255.255.255.0
+R2(dhcp-config)#default-router 192.168.10.1
+R2(dhcp-config)#dns-server 223.5.5.5 223.6.6.6
+R2(dhcp-config)#exit
+R2(config)#ip dhcp excluded-address 192.168.10.1
 R1(config)#ip route 0.0.0.0 0.0.0.0 192.168.157.2 #指向VMnet8网关
+R1(config)#ip nat inside source list 1 interface FastEthernet0/1 overload 
+R1(config)# access-list 1 permit 192.0.0.0 0.255.255.255
 ```
 
+5.4 **终端验证（TinyCore-1）**
+
+将 TinyCore-1 的网卡设为 DHCP 自动获取，应该得到类似下面的 IP：
+![]()
+
+然后尝试：
+![]()
+
+预期结果：全部通。
 ‍
+这篇文章不仅是一个“能上网的模拟实验”，更是一个能投入生产使用的解决方案。
